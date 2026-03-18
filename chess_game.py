@@ -183,7 +183,7 @@ def on_click(event):
                 if (row, col + 2) in valid_moves and (row, col + 1) not in valid_moves:
                     valid_moves.remove((row, col + 2))
 
-                elif (row, col - 2) in valid_moves and (row, col - 1) not in valid_moves:
+                if (row, col - 2) in valid_moves and (row, col - 1) not in valid_moves:
                     valid_moves.remove((row, col - 2))
 
             move_hints = valid_moves
