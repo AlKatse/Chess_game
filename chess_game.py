@@ -37,20 +37,19 @@ current_player = 'w'
 en_passant_flag = None
 
 def draw():
-
     CODES = {Pawn: 'P', Rook: 'R', Knight: 'N', Bishop: 'B', Queen: 'Q', King: 'K'}
 
     canvas.delete('all')
     for row in range(8):
         for col in range(8):
-            x1, y1 = col*square_size, row*square_size
+            x1, y1 = col * square_size, row * square_size
 
             if selected == (row, col):
                 color = selected_square
             else:
-                color = white_square_col if (row+col) % 2 == 0 else black_square_col
+                color = white_square_col if (row + col) % 2 == 0 else black_square_col
 
-            canvas.create_rectangle(x1, y1, x1+square_size, y1+square_size, fill=color, outline='')
+            canvas.create_rectangle(x1, y1, x1 + square_size, y1 + square_size, fill=color, outline='')
 
             piece = starting_board[row][col]
 
@@ -171,29 +170,38 @@ def on_click(event):
                          or (row, tc) == (enemy_pawn_row, enemy_pawn_col - 1))):
 
                         if player == 'w':
-                            valid_moves.append((enemy_pawn_row - 1, enemy_pawn_col))
-                        else:
                             valid_moves.append((enemy_pawn_row + 1, enemy_pawn_col))
+                        else:
+                            valid_moves.append((enemy_pawn_row - 1, enemy_pawn_col))
 
                 # --- UNDO SIMULATION ---
                 starting_board[row][col] = piece
                 starting_board[tr][tc] = saved_piece
 
             if piece.__class__.__name__ == 'King':
-                if (row, col + 2) in valid_moves and (row, col + 1) not in valid_moves:
-                    valid_moves.remove((row, col + 2))
+                if is_in_check(current_player, starting_board):
+                    if (row, col + 2) in valid_moves:
+                        valid_moves.remove((row, col + 2))
 
-                if (row, col - 2) in valid_moves and (row, col - 1) not in valid_moves:
-                    valid_moves.remove((row, col - 2))
+                    if (row, col - 2) in valid_moves:
+                        valid_moves.remove((row, col - 2))
+
+                else:
+                    if (row, col + 2) in valid_moves and (row, col + 1) not in valid_moves:
+                        valid_moves.remove((row, col + 2))
+
+                    if (row, col - 2) in valid_moves and (row, col - 1) not in valid_moves:
+                        valid_moves.remove((row, col - 2))
 
             move_hints = valid_moves
 
     else:
         if (row, col) in move_hints:
-            current_player = 'b' if current_player=='w' else 'w'
-
             from_row, from_col = selected
             piece = starting_board[from_row][from_col]
+            saved_piece = starting_board[row][col]  # Save the piece at destination before move
+
+            current_player = 'b' if current_player == 'w' else 'w'
 
             starting_board[row][col] = starting_board[from_row][from_col]
             starting_board[row][col].moved = True
@@ -218,21 +226,19 @@ def on_click(event):
             if isinstance(piece, Pawn):
                 piece.promotion(row, col, starting_board, draw)  # Pass 'draw' without ()
 
-                if en_passant_flag:
+                if en_passant_flag and saved_piece is None:
                     enemy_pawn_row, enemy_pawn_col = en_passant_flag[0:2]
                     enemy_color = en_passant_flag[2]
 
-                    if piece.color == enemy_color:
-                        if abs(from_col - col) == 1:
-                            starting_board[enemy_pawn_row][enemy_pawn_col] = None
+                    if piece.color != enemy_color and abs(from_col - col) == 1 and from_row == enemy_pawn_row:
+                        starting_board[enemy_pawn_row][enemy_pawn_col] = None
 
                 if abs(row - from_row) == 2:
-                    en_passant_flag = (row, col, current_player)
+                    en_passant_flag = (row, col, piece.color)
                 else:
                     en_passant_flag = None
 
             check_game_over()
-
 
         selected = None
         move_hints = []
